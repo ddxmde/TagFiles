@@ -13,7 +13,7 @@ Description
             <template slot-scope="scope">
                 <div label-position="left"  class="table-expand">
                     <el-tag closable size="medium" type="danger" style="float:left;margin-left:10px;margin-top:10px;"
-                        v-for="(tag,taginx) in scope.row.tags"  @close="removeTag(scope.$index,tag)">
+                        v-for="(tag,taginx) in scope.row.tags" :key="tag"  @close="removeTag(scope.$index,tag)">
                         {{tag}}
                     </el-tag>
                     <div style="width:100%;margin-top:10px;clear:both;">
@@ -37,7 +37,7 @@ Description
                 </span>
                 <el-tooltip class="item" effect="light" 
                     :content="scope.row.path" placement="bottom">
-                <span style="margin-left: 10px">{{ scope.row.name }}</span>
+                <span style="margin-left: 10px">{{ scope.row.fullName }}</span>
                 </el-tooltip>
             </div>
             </template>

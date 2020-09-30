@@ -189,6 +189,11 @@ function updateTags(targetFile){
     var folder_name = tmp_folder_path.pop()
     var json_path = path.resolve(folder_path, folder_name + "-data.json")
     var json_data = readFromJsonFile(json_path)
+    if(json_data==null){
+      //json文件被删
+      renewJsonFile(json_path)
+      json_data = readFromJsonFile(json_path)
+    }
     var json_data_files = json_data.files
     for(var i=0;i<json_data_files.length;i++){
       if (json_data_files[i].path == targetFile.path){
@@ -242,6 +247,9 @@ function getFolders(event, args) {
  */
 function addFolders(target) {
   var data_json_path = path.resolve('./', 'folders-data.json')
+  if(!fs.existsSync(data_json_path)){
+      //系统json文件被删
+  }
   var cur_folders = readFromJsonFile(data_json_path, 'folders')
   for (var f of cur_folders) {
     if (f.path == target) {
@@ -265,6 +273,7 @@ function readFromJsonFile(target, attr = null) {
   var data = {}
   try {
     data = fs.readFileSync(target, "utf-8")
+    if(data==null) return null
     var jdata = JSON.parse(data)
     if (attr == null) {
       return jdata
@@ -393,6 +402,55 @@ function createJsonFile(target, jsonArray = []) {
 }
 
 /**
+ * 为文件夹重建json文件
+ */
+function renewJsonFile(jsonPath) {
+  var tmp_arr = jsonPath.split(path.sep)
+  tmp_arr.pop()
+  var folderPath = tmp_arr.join(path.sep)
+  var tmp_json_data = {}
+  var tmp_json_files = getRealFilesFromFolder(folderPath)
+  tmp_json_data.files = tmp_json_files
+  tmp_json_data.indexData = []
+  return writeToJsonFile(jsonPath,tmp_json_data)
+}
+
+/**
+ * 从指定路径target的文件夹下读取全部文件--从硬盘文件夹中读取
+ */
+function getRealFilesFromFolder(target) {
+  var _allfiles = fs.readdirSync(target)
+  var result = []
+  for (var f of _allfiles) {
+    var f_stat = fs.statSync(path.resolve(target, f))
+    var f_name, f_path, f_type, f_tags, f_fullname
+    if(f_stat.isFile){
+        f_path = path.resolve(target, f)
+        var parent_name = target.split(path.sep).pop()
+        if (path.basename(f_path) == parent_name + "-data.json") {
+          continue
+        }
+        f_type = path.extname(f_path)
+        f_name = path.basename(f_path, f_type)
+        f_tags = [f_name, f_type]
+    }else{
+        f_path = path.resolve(target, f)
+        f_name = f_path.split(path.sep).pop()
+        f_type = "文件夹"
+        f_tags = [f_name, f_type]
+    }
+    var tmp_file = {}
+    tmp_file['fullName'] = f
+    tmp_file['name'] = f_name
+    tmp_file['type'] = f_type
+    tmp_file['path'] = f_path
+    tmp_file['tags'] = f_tags
+    result.push(tmp_file)
+  }
+  return result
+}
+
+/**
  * 删除文件夹及子文件夹下面的全部对应的json文件
  */
 function deleteFolderJson(target){
@@ -430,13 +488,16 @@ function getFilesFromFolder(target) {
   var _dirname = target.split(path.sep).pop()
   var json_data_file_name = _dirname + "-data.json"
   var files = readFromJsonFile(path.resolve(target,json_data_file_name), "files")
-  for(var i=0;i<files.length;i++){
-    if(files[i].type=="文件夹"){
-        files[i].info = getDirInfoPath(files[i].path)
-    }
+  if(files!=null){
+      for (var i = 0; i < files.length; i++) {
+        if (files[i].type == "文件夹") {
+          files[i].info = getDirInfoPath(files[i].path)
+        }
+      }
   }
   return files
 }
+
 
 /**
  * 向指定路径target的json文件中的'files'添加数据
@@ -467,12 +528,24 @@ function updateFolder() {
     var cur_json_path = path.resolve(sysfolder.path, cur_file_name)
     var cur_indexData = readFromJsonFile(cur_json_path,"indexData")
     console.log("更新" + cur_json_path)
-    updateByJsonPath(cur_json_path)
-    for (var jfile of cur_indexData) {
-        updateByJsonPath(jfile)
+    if (!fs.existsSync(cur_json_path)){
+        //主文件夹json文件丢失事情就大了，得全部重建
+        createJsonFile(sysfolder)
+    }else{
+        updateByJsonPath(cur_json_path)
+        for (var jfile of cur_indexData) {
+          //子文件夹json文件丢失，重建
+          if (!fs.existsSync(jfile)) {
+            renewJsonFile(jfile)
+          } else {
+            updateByJsonPath(jfile)
+          }
+        }
     }
   }
 }
+
+
 
 /**
  * 更新指定路径target的json文件数据

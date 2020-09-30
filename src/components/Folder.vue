@@ -120,7 +120,7 @@ Description
                 this.handleCheckAllChange(this.getallTypeOptions())
             },
             openChild($event){
-                if($event.type=="文件夹"){
+                if($event.type=="文件夹"&&$event.info.count!=0){
                     this.getFiles($event.path)
                     this.parent_folder = this.targetFolder
                     this.targetFolder = $event.path

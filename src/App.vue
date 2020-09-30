@@ -2,8 +2,8 @@
   <div id="app">
     <el-container v-loading.fullscreen.lock="fullscreenLoading">
         <el-aside width="65px">
-            <el-menu :default-active="cur_path_index"  text-color="#FFFFFF" 
-                background-color="#545c64" 
+            <el-menu :default-active="cur_path_index"  text-color="#FFFFFF" active-text-color="#44cef6"
+                background-color="#41555d"  
                 @open="handleOpen" @close="handleClose" :collapse="isCollapse"
                 @select="handleSelect">
                 <el-menu-item index="1" route="/Main">
@@ -43,6 +43,9 @@
                   clearable>
               </el-input>
               <el-button icon="el-icon-search" @click="search()"></el-button>
+              <div class="drag-button">
+                <i class="el-icon-rank "></i>
+              </div>
             </el-row>
           </el-header>
           <el-main>
@@ -162,6 +165,22 @@ export default {
   width:100%;
   height:100vh ;
 }
+.drag-button{
+  width:60px;
+  height:40px;
+  cursor:move;
+  float:right;
+  margin-right:0px;
+  margin-top:0px;
+  line-height:40px;
+  -webkit-app-region:drag;
+  font-size:24px;
+  color:#b35c44;
+  text-align:right;
+}
+.drag-button:hover{
+  cursor:move;
+}
 .el-aside {
     background-color: #545c64;
     color: #FFF;
@@ -183,8 +202,10 @@ export default {
 }
 .el-header{
   padding-top:10px;
-  background:#e3e3e3;
-  box-shadow:0px 3px 5px #333333;
+  background:#e9f1f6;
+  border-bottom:1px solid #c0ebd7;
+  margin-bottom:3px;
+  box-shadow:0px 1px  2px #c0ebd7;
   text-align: center;
 }
 .el-input{
