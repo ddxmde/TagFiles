@@ -98,7 +98,7 @@ export default {
           //this.$router.push({ name:'Folder',params:{targetFolder:target }})
         }
         if(index==2){
-            //this.$router.push({ name:'Setting'})
+            this.$router.push({ name:'Setting'})
         }
         if(index==1){
             this.$router.push({ name:'Main'})

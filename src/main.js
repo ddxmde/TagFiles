@@ -17,8 +17,8 @@ Vue.config.productionTip = false
 
 import Main from './components/Main.vue'
 
-import FileList from './components/FileList.vue'
 import Folder from './components/Folder.vue'
+import Setting from './components/Setting.vue'
 const routes = [
   {
     name: 'Main',
@@ -29,6 +29,10 @@ const routes = [
     name:'Folder',
     path: '/Folder',
     component: Folder
+  }, {
+    name: 'Setting',
+    path: '/Setting',
+    component: Setting
   }
 ]
 
