@@ -1,7 +1,9 @@
 .DS_Store
 node_modules
 /dist
-
+/dists
+/dist_electron
+/.templates
 
 # local env files
 .env.local
@@ -21,3 +23,6 @@ pnpm-debug.log*
 *.njsproj
 *.sln
 *.sw?
+
+#Electron-builder output
+/dist_electron
