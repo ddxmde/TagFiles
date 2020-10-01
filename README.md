@@ -4,13 +4,7 @@
 
 **计划：** 替代资源管理器
 
-**界面：**
-
-![](./public/demo.jpg)
-
-![](./public/demo2.jpg)
-
-![](./public/demo3.jpg)
+[**界面及下载安装包**](https://github.com/ddxmde/TagFiles/releases/tag/v0.1.2)
 
 ### 更新v0.1.2
 
