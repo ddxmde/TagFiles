@@ -7,24 +7,48 @@ Description
 <template>
   <div>
     <div  style="margin-top:10px;width:100%;clear:both">
-        <div class="containerHeader">
+        <div class="containerHeader" >
             <div style="float:left;margin:0px 20px;">
                 <el-radio-group v-model="checkStyle" size="small">
                     <el-radio-button v-for="fstyle in fstyles" :label="fstyle" :key="fstyle">{{fstyle}}</el-radio-button>
                 </el-radio-group>
             </div>
-            <el-checkbox :indeterminate="isIndeterminate" 
-                v-model="checkAll" @change="handleCheckAllChange"
-                style="float:left;margin-right:20px">全选</el-checkbox>
-            
-            <el-checkbox-group v-model="checkedTypes" @change="handleCheckedChange">
-                <el-checkbox v-for="item in ftypes" :label="item" :key="item.type">{{item.label}}</el-checkbox>
-            </el-checkbox-group>
+            <div style="float:left;margin-left:20px">
+                <el-checkbox :indeterminate="isIndeterminate" style="float:left;"
+                    v-model="checkAll" @change="handleCheckAllChange"
+                    >全选</el-checkbox>
+                <div style="float:left;margin-left:20px">
+                    <el-checkbox-group v-model="checkedTypes" @change="handleCheckedChange">
+                        <el-checkbox v-for="item in ftypes" :label="item" :key="item.type">{{item.label}}</el-checkbox>
+                    </el-checkbox-group>
+                </div>
+            </div>
+            <div style="float:right;margin-right:20px">
+                <el-dropdown trigger="click">
+                    <span class="el-dropdown-link">
+                        <i class="el-icon-s-grid "></i>
+                    </span>
+                    <el-dropdown-menu slot="dropdown">
+                        <el-dropdown-item style="margin-bottom:5px;">
+                            <el-button type="primary" @click="copyInFiles_before()"  v-if="targetFolder!=''"
+                                size="small" icon="el-icon-download">导入文件</el-button>
+                        </el-dropdown-item>
+                        <el-dropdown-item style="margin-bottom:5px;">
+                            <el-button type="primary" @click="patchSave_before()" 
+                                size="small" icon="el-icon-upload2">全部导出</el-button>
+                        </el-dropdown-item>
+                        <el-dropdown-item>
+                            <el-button type="danger" @click="patchDelete_before()" 
+                                size="small" icon="el-icon-warning">全部删除</el-button>
+                        </el-dropdown-item>
+                    </el-dropdown-menu>
+                </el-dropdown>
+            </div>
         </div>
-        
+       
         <FileList :folders="folders" v-if="checkStyle=='图标'"></FileList>
         <FileTable v-on:goparent="goParent($event)" @openChild="openChild($event)" :folders="folders" v-if="checkStyle=='列表'"></FileTable>
-    </div>
+    </div> 
     
   </div>
 </template>
@@ -86,7 +110,8 @@ Description
                 checkStyle:'列表',
                 fstyles:['列表','图标'],
                 sys_folders:[],
-                parent_folder:''
+                parent_folder:'',
+                isConfirmed:false
             }
         },
         computed: {
@@ -214,6 +239,69 @@ Description
                 if(result=="") result="other"
                 return result
 
+            },
+            openMessage(message,type='success'){
+                console.log(type)
+                this.$message({
+                message,
+                type,
+                duration:2000,
+                offset:120
+                });
+            },
+            openConfirm(action,message,icontype="warning",title="提示",btncancel="取消",btnconfirm="确认") {
+                var _that = this
+                this.$confirm(message, title, {
+                confirmButtonText: btnconfirm,
+                cancelButtonText: btncancel,
+                type: icontype
+                }).then(() => {
+                    action()
+                }).catch(() => {
+                             
+                });
+            },
+            patchSave_before(){
+                var _that = this
+                _that.openConfirm(_that.patchSave,"导出当前全部文件(含文件夹),是否继续？")
+            },
+            patchSave(){
+                //批量导出
+                var _that = this
+                ipcRenderer.send("patch-save",_that.folders)
+                ipcRenderer.once("patch-save-response",(event,args)=>{
+                    if(args){
+                        _that.openMessage("保存文件成功")
+                    }else{
+                         _that.openMessage("保存文件失败","error")
+                    }
+                })
+            },
+            patchDelete_before(){
+                var _that = this
+                _that.openConfirm(_that.patchDelete,"本次操作将删除全部文件,是否继续？","error","高风险操作")
+            },
+            patchDelete(){
+                var _that = this
+                ipcRenderer.send("patch-delete",_that.folders)
+                ipcRenderer.once("patch-delete-response",(event,args)=>{
+                    if(args){
+                        _that.openMessage("删除文件成功")
+                        setTimeout(()=>{
+                            _that.$router.push({name:"Main"})
+                        },2000)
+                    }else{
+                         _that.openMessage("删除文件失败","error")
+                    }
+                })
+            },
+            copyInFiles_before(){
+                //导入文件
+                var _that = this
+                ipcRenderer.send("choose-copy-files",_that.folders)
+                ipcRenderer.once("choose-copy-files-response",(event,args)=>{
+                    
+                })
             }
         },
         mounted(){
@@ -225,6 +313,9 @@ Description
             //console.log(this.searchResult)
             if(this.searchResult.length!=0){
                 this.setFiles()
+            }
+            if(this.targetFolder==''&&this.searchResult.length==0){
+                this.$router.push({name:"Main"})
             }
             this.getSysFolders()
             this.checkedTypes = this.getallTypeOptions()
@@ -240,8 +331,18 @@ Description
   }
   .containerHeader{
     padding:10px 0px;
-    border-bottom:1px solid #d3d3d3;
+    border:1px solid #d3d3d3;
     margin-bottom:20px;
     line-height:40px;
+    height:40px;
+  }
+  .el-dropdown {
+    vertical-align: top;
+  }
+  .el-dropdown + .el-dropdown {
+    margin-left: 15px;
+  }
+  .el-dropdown-link{
+      font-size:24px;
   }
 </style>

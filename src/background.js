@@ -177,6 +177,102 @@ ipcMain.on('update-folders', (event, args) => {
   event.reply("update-folders-response");
 })
 
+//更新文件夹 - 用户在app以外添加或删除文件之后数据更新 openDirectory
+ipcMain.on('patch-save', (event, args) => {
+  dialog.showOpenDialog({
+    properties: ['openDirectory']
+  }).then((rs) => {
+    var save_or_not = false
+    if (!rs.canceled) { // 如果有选中
+      console.log(rs.filePaths[0])
+      save_or_not = saveFilestoFolder(args, rs.filePaths[0])
+    }
+    event.reply("patch-save-response", save_or_not);
+  })
+})
+
+ipcMain.on('patch-delete', (event, args) => {
+  event.reply("patch-delete-response", deleteFilesFromDisk(args));
+})
+
+/**
+ * 删除全部选中文件及文件夹
+*/
+function deleteFilesFromDisk(files){
+    for(var f of files){
+        if(f.type=="文件夹"){
+            deleteAllFromDisk(f.path)
+        }else{
+            if(fs.existsSync(f.path)){
+                fs.unlinkSync(f.path)
+            }
+        }
+    }
+    return true
+}
+
+/**
+ * 保存批量文件到文件夹
+*/
+function saveFilestoFolder(files,folder) {
+     for(var f of files){
+        var newPath = path.resolve(folder, f.fullName)
+        if (fs.existsSync(f.path) && newPath!= f.path) {
+          // 文件存在，不是文件夹且和原来文件不在一个目录
+            if(f.type=="文件夹"){
+                try {
+                    CopyDir(f.path, folder)
+                } catch (error) {
+                    return false
+                }
+            }else{
+                var count = 0
+                while (fs.existsSync(newPath)) { //处理重名
+                  count += 1
+                  newPath = path.resolve(folder, f.name + "(" + count + ")" + f.type)
+                }
+                try {
+                  fs.writeFileSync(newPath, fs.readFileSync(f.path));
+                } catch (error) {
+                  return false
+                }
+            }
+        }
+     }
+     return true
+}
+
+
+/**
+ * 拷贝文件夹到指定文件夹下
+*/
+function CopyDir(folderPath, destPath) {
+  if (!fs.existsSync(destPath)){//指定文件夹不存在
+      return false
+  } 
+  var folder_name = folderPath.split(path.sep).pop()
+  var newPath = path.resolve(destPath, folder_name)
+  var count = 0
+  while (fs.existsSync(newPath)) {
+    //同名
+    count += 1
+    newPath = path.resolve(destPath, folder_name + "(" + count + ")")
+  }
+  fs.mkdirSync(newPath)
+  var files = fs.readdirSync(folderPath);
+  files.forEach((_file) => {
+    var o_f_path = path.join(folderPath, _file)
+    var n_f_path = path.join(newPath, _file)
+    if (fs.statSync(o_f_path).isFile()) {
+      //拷贝文件
+      fs.writeFileSync(n_f_path, fs.readFileSync(o_f_path));
+    } else {
+      //拷贝文件夹
+      CopyDir(o_f_path, newPath)
+    }
+  })
+}
+
 /**
  * 根据指定文件路径更新文件对应的tag
 */
@@ -231,10 +327,20 @@ function getFolders(event, args) {
       tmp_jsondata.folders = []
       tmp_jsondata.indexData = []
       writeToJsonFile(data_json_path, tmp_jsondata)
+      return
   }
   var folders = readFromJsonFile(data_json_path, 'folders')
+  if(folders==null){
+      renewJsonFile(data_json_path)
+  }
   var new_folders = folders.map((item) => {
-    return getDirInfoPath(item.path)
+     var folderInfo =  getDirInfoPath(item.path)
+     if(folderInfo==null){
+        //该文件夹已经不在了
+        return false
+     }else{
+       return folderInfo
+     }
   })
   var sys_data_json = readFromJsonFile(data_json_path)
   sys_data_json.folders = new_folders
@@ -256,7 +362,9 @@ function addFolders(target) {
       return null
     }
   }
+  createJsonFile(target)
   var dir_info = getDirInfoPath(target)
+  if(dir_info==null){return false}
   var cur_json_data = readFromJsonFile(data_json_path)
   cur_folders = cur_json_data.folders
   cur_folders.push(dir_info)
@@ -304,10 +412,11 @@ function writeToJsonFile(target, newData) {
 
 /**
  * 获取指定路径target的文件夹的信息
- * 如果文件夹对应的json不存在，则创建json
+ * 如果文件夹对应的json不存在，且文件夹还在，则创建json
  * 如果存在，则从json读取
  */
 function getDirInfoPath(target) {
+  
   var result = {}
   var _allfiles = fs.readdirSync(target)
   var dir_count = 0
@@ -337,12 +446,14 @@ function getDirInfoPath(target) {
     }
     result['totalCount']-=1
   } else {
-    //创建一个xxx-data.json文件
-    var child_count = createJsonFile(target)
-    if (child_count == null) {
-      console.log("error")
-    } else {
-      result['count'] = child_count
+    //如果文件存在json不存在创建一个xxx-data.json文件
+    if(fs.existsSync(target)) {
+      var child_count = createJsonFile(target)
+      if (child_count == null) {
+        console.log("error")
+      } else {
+        result['count'] = child_count
+      }
     }
   }
   return result
@@ -419,6 +530,7 @@ function renewJsonFile(jsonPath) {
  * 从指定路径target的文件夹下读取全部文件--从硬盘文件夹中读取
  */
 function getRealFilesFromFolder(target) {
+  if(!fs.existsSync(target)){return null;}
   var _allfiles = fs.readdirSync(target)
   var result = []
   for (var f of _allfiles) {
@@ -491,7 +603,13 @@ function getFilesFromFolder(target) {
   if(files!=null){
       for (var i = 0; i < files.length; i++) {
         if (files[i].type == "文件夹") {
-          files[i].info = getDirInfoPath(files[i].path)
+          if (fs.existsSync(files[i].path)){
+              files[i].info = getDirInfoPath(files[i].path)
+          }else{
+              files[i].info={
+                totalCount:0,count:0
+              }
+          }
         }
       }
   }
@@ -532,13 +650,16 @@ function updateFolder() {
         //主文件夹json文件丢失事情就大了，得全部重建
         createJsonFile(sysfolder)
     }else{
-        updateByJsonPath(cur_json_path)
+        updateByJsonPath(cur_json_path,cur_json_path)
         for (var jfile of cur_indexData) {
-          //子文件夹json文件丢失，重建
           if (!fs.existsSync(jfile)) {
-            renewJsonFile(jfile)
+            var tmp_json_folder_path = jfile.split(path.sep)
+            tmp_json_folder_path.pop()
+            if (fs.existsSync(tmp_json_folder_path.join(path.sep)))
+                //文件夹还在json丢失则重建
+                renewJsonFile(jfile)
           } else {
-            updateByJsonPath(jfile)
+            updateByJsonPath(cur_json_path,jfile)
           }
         }
     }
@@ -550,16 +671,26 @@ function updateFolder() {
 /**
  * 更新指定路径target的json文件数据
  */
-function updateByJsonPath(target){
+function updateByJsonPath(sysFolder_jsonPath,target){
     // "xx/xxx/xx-data.json" success-true error-false
     var folderPath = target.split(path.sep)
     var target_name = folderPath.pop()
     folderPath = folderPath.join(path.sep)
+    var tmp_sysFolder_jsondata = readFromJsonFile(sysFolder_jsonPath)
     if (!fs.existsSync(folderPath)){
+      // 如果json文件不存在了，说明文件夹被删了，要把系统文件夹下面的json更新了
+      
+      tmp_sysFolder_jsondata.files = tmp_sysFolder_jsondata.files.filter(t_file => {
+          return t_file.path != folderPath
+      })
+      tmp_sysFolder_jsondata.indexData = tmp_sysFolder_jsondata.indexData.filter(t_j=>{
+          return t_j!=target
+      })
+      writeToJsonFile(sysFolder_jsonPath, tmp_sysFolder_jsondata)
       return
     }
-    var children = fs.readdirSync(folderPath)
-    children = children.filter(child=>{
+    var children = fs.readdirSync(folderPath) //获取该文件夹真实的全部子文件
+    children = children.filter(child=>{ //忽略json文件
         return child != target_name
     })
     var JsonData = readFromJsonFile(target)
@@ -571,23 +702,32 @@ function updateByJsonPath(target){
         var tmp_child_info = null
         if(JsonData.files!=null){
             for (var jsonChild of JsonData.files){
-              if(child == jsonChild.fullName){
-                 tmp_child_info =jsonChild
+              if(child == jsonChild.fullName){ //如果文件已经存在
+                  tmp_child_info =jsonChild
                   break
               }
             }
         }
-        if(tmp_child_info==null){
+        if(tmp_child_info==null){   //文件为新增的
             console.log("新增" + child)
             tmp_child_info = getFileInfoFromPath(folderPath, child)
-            if (tmp_child_info.type == "文件夹"){
+            if (tmp_child_info.type == "文件夹"){ //如果新增的为文件夹
                 var child_json_name = path.resolve(tmp_child_info.path ,tmp_child_info.fullName+"-data.json")
+                //根据文件夹创建json，再根据json更新
+                createJsonFile(tmp_child_info.path)
+                var child_children_json = readFromJsonFile(child_json_name,"indexData")
                 newJsonData['indexData'].push(child_json_name)
+                //写入总文件夹的json中
+                tmp_sysFolder_jsondata['indexData'].push(child_json_name)
+                child_children_json.forEach(jp=>{
+                    tmp_sysFolder_jsondata['indexData'].push(jp)
+                })
             }
         }
         newJsonData['files'].push(tmp_child_info)
         
     }
+    writeToJsonFile(sysFolder_jsonPath, tmp_sysFolder_jsondata)
     return writeToJsonFile(target, newJsonData)
 }
 
@@ -629,17 +769,22 @@ function getFilesByTags(folders,tags){
       for (var jp of cur_jsons){
           result = result.concat(getFileFromJsonByTags(jp,tags))
           var cur_indexdatas = readFromJsonFile(jp, 'indexData')
-          for (var cur_child of cur_indexdatas){
-            result = result.concat(getFileFromJsonByTags(cur_child, tags))
+          if(cur_indexdatas!=null){
+              for (var cur_child of cur_indexdatas) {
+                result = result.concat(getFileFromJsonByTags(cur_child, tags))
+              }
           }
       }
     }else{
         for(var folder of folders){
             var cur_f_json = path.resolve(folder.path,folder.name+"-data.json")
+
             result = result.concat(getFileFromJsonByTags(cur_f_json, tags))
             var cur_indexdatas = readFromJsonFile(cur_f_json, 'indexData')
-            for (var cur_child of cur_indexdatas) {
-              result = result.concat(getFileFromJsonByTags(cur_child, tags))
+            if(cur_indexdatas!=null){
+                for (var cur_child of cur_indexdatas) {
+                  result = result.concat(getFileFromJsonByTags(cur_child, tags))
+                }
             }
         }
     }
@@ -651,15 +796,28 @@ function getFilesByTags(folders,tags){
  */
 function getFileFromJsonByTags(target,tags){
     var result = []
+    if (!fs.existsSync(target)){
+        var folderPath = target.split(path.sep)
+        var target_name = folderPath.pop()
+        folderPath = folderPath.join(path.sep)
+        if (fs.existsSync(folderPath)){
+          createJsonFile(folderPath)
+        }else{
+          return result
+        }
+    }
     var cur_files = readFromJsonFile(target, 'files')
-    
+    if (cur_files == null) {
+      return result
+    }
     for (var f of cur_files){
-      var cur_file_tags = f.tags.join(" ")
-      
-      if (hasSubin(tags, cur_file_tags)) {
-        if(f.type=="文件夹")
-          f.info = getDirInfoPath(f.path)
-        result.push(f)
+      if(fs.existsSync(f.path)){
+          var cur_file_tags = f.tags.join(" ")
+          if (hasSubin(tags, cur_file_tags)) {
+            if (f.type == "文件夹")
+              f.info = getDirInfoPath(f.path)
+            result.push(f)
+          }
       }
     }
     return result
@@ -686,4 +844,43 @@ function hasSubin(arr,tar){
     }
   }
   return false
+}
+
+function deleteAllFromDisk(dirPath) {
+    var data_json_path = path.resolve('./', 'folders-data.json')
+    if (!fs.existsSync(data_json_path)) {
+        return
+    }
+    var sys_json = readFromJsonFile(data_json_path)
+    var parent_folders = []
+    for(var sysfolder of sys_json.folders){//删除在indexData里面的数据
+        if(fs.existsSync(sysfolder.path)){
+            if (dirPath.indexOf(sysfolder.path)) {
+                var tmp_p_json_path = path.resolve(sysfolder.path,sysfolder.name+"-data.json")
+                if (fs.existsSync(tmp_p_json_path)){
+                    var tmp_p_json_data = readFromJsonFile(tmp_p_json_path)
+                    tmp_p_json_data.indexData = tmp_p_json_data.indexData.filter((t_j) => {
+                        var f_j_p = path.resolve(dirPath, dirPath.split(path.sep).pop() + "-data.json")
+                        return t_j != f_j_p
+                    })
+                    writeToJsonFile(tmp_p_json_path, tmp_p_json_data)
+                }
+            }
+        }  
+    }
+
+    var files = [];
+    if (fs.existsSync(dirPath)) {
+      files = fs.readdirSync(dirPath);
+      files.forEach(function (file, index) {
+        var curPath = path.join(dirPath, file)
+        if (fs.statSync(curPath).isDirectory()) { // recurse
+          deleteAllFromDisk(curPath);
+
+        } else { // delete file
+          fs.unlinkSync(curPath);
+        }
+      });
+      fs.rmdirSync(dirPath);
+    }
 }
