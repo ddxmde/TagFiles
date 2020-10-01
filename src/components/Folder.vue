@@ -23,21 +23,21 @@ Description
                     </el-checkbox-group>
                 </div>
             </div>
-            <div style="float:right;margin-right:20px">
+            <div style="float:right;margin-right:20px;cursor:pointer;">
                 <el-dropdown trigger="click">
-                    <span class="el-dropdown-link">
-                        <i class="el-icon-s-grid "></i>
+                    <span class="el-dropdown-link" >
+                        <i class="el-icon-s-grid"></i>
                     </span>
-                    <el-dropdown-menu slot="dropdown">
-                        <el-dropdown-item style="margin-bottom:5px;">
+                    <el-dropdown-menu slot="dropdown" style="box-shadow:0px 0px 5px #c2ccd0" >
+                        <el-dropdown-item style="margin-bottom:5px;background:none;">
                             <el-button type="primary" @click="copyInFiles_before()"  v-if="targetFolder!=''"
                                 size="small" icon="el-icon-download">导入文件</el-button>
                         </el-dropdown-item>
-                        <el-dropdown-item style="margin-bottom:5px;">
+                        <el-dropdown-item style="margin-bottom:5px;background:none;">
                             <el-button type="primary" @click="patchSave_before()" 
                                 size="small" icon="el-icon-upload2">全部导出</el-button>
                         </el-dropdown-item>
-                        <el-dropdown-item>
+                        <el-dropdown-item style="margin-bottom:5px;background:none;">
                             <el-button type="danger" @click="patchDelete_before()" 
                                 size="small" icon="el-icon-warning">全部删除</el-button>
                         </el-dropdown-item>
@@ -343,6 +343,6 @@ Description
     margin-left: 15px;
   }
   .el-dropdown-link{
-      font-size:24px;
+      font-size:28px;color:#2e4e7e;
   }
 </style>

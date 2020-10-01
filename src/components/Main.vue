@@ -13,9 +13,9 @@ Description
         <el-button type="danger"  icon="el-icon-check" 
             size="small" @click="updateall">更新</el-button>
     </div>
-    <el-table stripe :show-header="false"
-      :data="folders"
-      style="width: 100%">
+    <el-table  :show-header="false"
+      :data="folders" 
+      style="width: 100%" :row-style="setRowStyle">
       <el-table-column>
         <template slot-scope="scope">
           <div class="folderName">
@@ -31,8 +31,8 @@ Description
         width="180">
         <template slot-scope="scope">
           <span style="margin-left:10px">文件数：{{ scope.row.count }}</span>
-          <span style="margin-left:10px;background:#ff0033;
-                        padding:3px;color:#FFFFFF;border-raidus:3px;"
+          <span style="margin-left:10px;background:#f47983;border:1px solid #f47983;font-weight:bold;
+                        padding:5px 5px;color:#FFFFFF;border-raidus:5px;"
             v-if="scope.row.totalCount-scope.row.count!=0">
             {{ scope.row.totalCount-scope.row.count }}
           </span>
@@ -41,7 +41,7 @@ Description
       <el-table-column width="230px" fixed="right">
         <template slot-scope="scope">
           <el-button
-            size="mini"
+            size="mini" type="primary"
             @click="handleOpen(scope.row.path)">打开</el-button>
           <el-button
             size="mini"
@@ -137,6 +137,12 @@ Description
               _that.fullscreenLoading = false
               _that.openMessage("全部更新")
           })
+      },
+      setRowStyle({row,rowIndex}) {
+        if(rowIndex%2==0){
+          return {'background-color': '#f3f9f1','cursor':'pointer','color':'#2e4e7e'}
+        }
+        else return {'background-color': '#e0eee8','cursor':'pointer','color':'#2e4e7e'}
       }
     }
   }
@@ -155,7 +161,7 @@ Description
          color:#ffffff;
   }
   .el-main{
-      background:#f4f4f4;
+      background:#e9f1f6;
   }
   .el-container{
       height:100%;
@@ -169,7 +175,7 @@ Description
   }
   .containerHeader{
     padding:10px 0px;
-    border-bottom:1px solid #d3d3d3;
+    border-bottom:1px solid #ccc;
     margin-bottom:20px;
   }
 </style>

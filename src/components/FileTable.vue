@@ -6,7 +6,7 @@ Description
 -->
 <template>
   <div>
-    <el-table stripe :show-header="false"
+    <el-table stripe :show-header="false" :row-style="setRowStyle"
       :data="folders"
       style="width: 100%">
         <el-table-column type="expand">
@@ -45,24 +45,44 @@ Description
         <el-table-column
             width="180">
             <template slot-scope="scope">
-            <span style="margin-left:10px" v-if="scope.row.type!='文件夹'">类型：{{ scope.row.type }}</span>
-            <p v-else style="font-weight:bold">
-                <span style="margin-left:10px">文件数：{{ scope.row.info.count }}</span>
-                <span style="margin-left:10px;background:#ff0033;
-                                padding:3px;color:#FFFFFF;border-raidus:3px;"
-                    v-if="scope.row.info.totalCount-scope.row.info.count!=0">
-                    {{ scope.row.info.totalCount-scope.row.info.count }}
-                </span>
-            </p>
+                <el-popover
+                    placement="right-end"
+                    width="320"
+                    trigger="hover" v-if="scope.row.labelType=='image'">
+                    <img :src="getSafePath(scope.row.path)" width="320px" />
+                    <div slot="reference">
+                        <span style="margin-left:10px" v-if="scope.row.type!='文件夹'">类型：{{ scope.row.type }}</span>
+                        <p v-else style="font-weight:bold">
+                            <span style="margin-left:10px">文件数：{{ scope.row.info.count }}</span>
+                            <span style="margin-left:10px;background:#ff0033;
+                                            padding:3px;color:#FFFFFF;border-raidus:3px;"
+                                v-if="scope.row.info.totalCount-scope.row.info.count!=0">
+                                {{ scope.row.info.totalCount-scope.row.info.count }}
+                            </span>
+                        </p>
+                    </div>
+                </el-popover>
+                <div v-else>
+                        <span style="margin-left:10px" v-if="scope.row.type!='文件夹'">类型：{{ scope.row.type }}</span>
+                        <p v-else style="font-weight:bold">
+                            <span style="margin-left:10px">文件数：{{ scope.row.info.count }}</span>
+                            <span style="margin-left:10px;background:#ff0033;
+                                            padding:3px;color:#FFFFFF;border-raidus:3px;"
+                                v-if="scope.row.info.totalCount-scope.row.info.count!=0">
+                                {{ scope.row.info.totalCount-scope.row.info.count }}
+                            </span>
+                        </p>
+                </div>
+                
             </template>
         </el-table-column>
         <el-table-column fixed="right">
             <template slot-scope="scope">
             <el-button
-                size="mini"
+                size="mini" type="primary"
                 @click="handleOpen(scope.row)">打开</el-button>
             <el-button
-                size="mini"
+                size="mini" type="warning"
                 @click="$emit('goparent',scope.row)">上级目录</el-button>
             </template>
         </el-table-column>
@@ -91,7 +111,16 @@ const {
           //this.getSysFolders()
       },
       methods: {
-          
+        getSafePath (path) {
+            // return `${__safeFileProtocol}://${path}`
+            return `electrondemo-safe-file-protocol://${path}`
+        },
+        setRowStyle({row,rowIndex}) {
+            if(rowIndex%2==0){
+            return {'background-color': '#f3f9f1','cursor':'pointer','color':'#2e4e7e'}
+            }
+            else return {'background-color': '#e0eee8','cursor':'pointer','color':'#2e4e7e'}
+        },
         addTags(index){
                 var oldtags = this.folders[index].tags
                 var newTagArr = this.newTags.split('/')

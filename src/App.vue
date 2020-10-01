@@ -3,7 +3,7 @@
     <el-container v-loading.fullscreen.lock="fullscreenLoading">
         <el-aside width="65px">
             <el-menu :default-active="cur_path_index"  text-color="#FFFFFF" active-text-color="#44cef6"
-                background-color="#41555d"  
+                background-color="#303133"  
                 @open="handleOpen" @close="handleClose" :collapse="isCollapse"
                 @select="handleSelect">
                 <el-menu-item index="1" route="/Main">
@@ -37,13 +37,13 @@
                   <span style="float: right; margin-left:5px;color: #cccccc; font-size: 13px">{{ item.path }}</span>
                   </el-option>
               </el-select>
-              <el-input @focus="gomain()"
+              <el-input @focus="gomain()" class="input-style"
                   placeholder="输入查询的标签,多个标签用 / 隔开"
                   v-model="inputTags"
                   clearable>
               </el-input>
-              <el-button icon="el-icon-search" @click="search()"></el-button>
-              <div class="drag-button">
+              <el-button icon="el-icon-search" class="search_btn" @click="search()"></el-button>
+              <div class="drag-button" style="cursor:pointer;">
                 <i class="el-icon-rank "></i>
               </div>
             </el-row>
@@ -168,19 +168,17 @@ export default {
 .drag-button{
   width:60px;
   height:40px;
-  cursor:move;
+  cursor:pointer;
   float:right;
   margin-right:0px;
   margin-top:0px;
   line-height:40px;
   -webkit-app-region:drag;
   font-size:24px;
-  color:#b35c44;
+  color:#2e4e7e;
   text-align:right;
 }
-.drag-button:hover{
-  cursor:move;
-}
+
 .el-aside {
     background-color: #545c64;
     color: #FFF;
@@ -195,17 +193,15 @@ export default {
          color:#ffffff;
 }
 .el-main{
-      background:#f4f4f4;
+      background:#f3f9f1;
 }
 .el-container{
       height:100%;
 }
 .el-header{
   padding-top:10px;
-  background:#e9f1f6;
-  border-bottom:1px solid #c0ebd7;
-  margin-bottom:3px;
-  box-shadow:0px 1px  2px #c0ebd7;
+  background:#e0eee8;
+  border-bottom:1px solid #cccccc;
   text-align: center;
 }
 .el-input{
@@ -223,4 +219,37 @@ export default {
       z-index:99999;
       margin-left:5px;
   }
+  .search_btn{
+    background:#425066;
+    color:#FFFFFF;border-radius: 5px;
+  }
+  .search_btn:hover{
+    background:#425066;
+    color:#FFFFFF;
+    box-shadow:0px 0px 4px #425066;
+  }
+  /deep/ .el-input__inner{   /*或者 .s2>>>.el-input__inner  */
+              background:#f3f9f1;
+              color:#FFFFFF;    /*调整inner的背景色，透明*/
+              border:1px solid #d3d3d3;
+              color:#2e4e7e;
+              outline: none;
+              border-radius: 5px;    /*输入框圆角值*/
+            }
+  /deep/ .el-input__inner:active{   /*或者 .s2>>>.el-input__inner  */
+              background:#f3f9f1;
+              color:#FFFFFF;    /*调整inner的背景色，透明*/
+             
+              color:#2e4e7e;
+              outline: none;
+              border-radius: 5px;    /*输入框圆角值*/
+            }
+  /deep/ .el-input__inner:hover{   /*或者 .s2>>>.el-input__inner  */
+              background:#f3f9f1;
+              color:#FFFFFF;    /*调整inner的背景色，透明*/
+              
+              color:#2e4e7e;
+              outline: none;
+              border-radius: 5px;    /*输入框圆角值*/
+            }
 </style>
